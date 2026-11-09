@@ -177,7 +177,20 @@ private fun MJPlay(repo: Repository) {
         if (!connected && !repo.localLiveAvailable) { connect = true; return }
         cancelLoad(); busy = true; error = null; failedTitle = channel.title; retryPlayback = { playChannel(channel) }
         val serial = loadSerial
-        loadJob = scope.launch { try { playback = Playback(Title(channel.number, "live", channel.title), repo.live(channel)); retryPlayback = null } catch (e: kotlinx.coroutines.TimeoutCancellationException) { if(serial == loadSerial) error = "The source took too long. Please retry." } catch (e: CancellationException) { throw e } catch (e: Exception) { if (serial == loadSerial) error = e.message } finally { if (serial == loadSerial) busy = false } }
+        loadJob = scope.launch {
+            try {
+                playback = Playback(Title(channel.number, "live", channel.title), repo.live(channel))
+                retryPlayback = null
+            } catch (_: kotlinx.coroutines.TimeoutCancellationException) {
+                if (serial == loadSerial) error = LIVE_PLAYBACK_UNAVAILABLE
+            } catch (e: CancellationException) {
+                throw e
+            } catch (_: Exception) {
+                if (serial == loadSerial) error = LIVE_PLAYBACK_UNAVAILABLE
+            } finally {
+                if (serial == loadSerial) busy = false
+            }
+        }
     }
     fun playSports(event: SportsEvent, source: SportsSource) {
         sportsDetail = event

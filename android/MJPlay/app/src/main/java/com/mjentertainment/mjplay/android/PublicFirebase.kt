@@ -45,13 +45,17 @@ object PublicFirebase {
                 runCatching { CatalogueEndpoint.validate(config.getString("catalogue_api_origin")) }.onSuccess { CatalogueEndpoint.origin = it }
                 runCatching { AppUpdates.validateManifest(config.getString("android_update_manifest_url")) }.onSuccess { AppUpdates.manifest = it }
                 LocalLiveConfig.enabled = config.getBoolean("android_local_live_enabled")
+                LocalLiveConfig.preparedEnabled = config.getBoolean("android_prepared_live_enabled")
+                config.getString("android_prepared_live_watch_host")
+                    .takeIf { it in LocalLiveConfig.watchHosts }
+                    ?.let { LocalLiveConfig.watchHost = it }
                 runCatching { LocalLiveConfig.parse(config.getString("live_source_config")) }.onSuccess { LocalLiveConfig.hosts = it }
                 flags.value = PublicFlags(config.getBoolean("vod_enabled"), config.getBoolean("live_tv_enabled"), config.getBoolean("sports_enabled"), config.getString("maintenance_message").take(240), config.getLong("min_android_version"))
                 RemotePresentation.defaults.keys.forEach { key -> val raw=config.getString(key); if(runCatching { RemotePresentation.validate(key,raw) }.isSuccess) { saved[key]=raw; presentationPrefs.edit().putString(key,raw).apply() } }
                 presentation.value = RemotePresentation.read(saved)
             }
             config.setConfigSettingsAsync(FirebaseRemoteConfigSettings.Builder().setMinimumFetchIntervalInSeconds(300).setFetchTimeoutInSeconds(8).build())
-            config.setDefaultsAsync(mapOf("android_update_manifest_url" to "$BACKEND/downloads/android.json", "vod_enabled" to true, "live_tv_enabled" to true, "sports_enabled" to true, "maintenance_message" to "", "min_android_version" to 0L, "catalogue_api_origin" to CatalogueEndpoint.DEFAULT, "android_local_live_enabled" to true, "live_source_config" to LocalLiveConfig.DEFAULT) + RemotePresentation.defaults).addOnCompleteListener {
+            config.setDefaultsAsync(mapOf("android_update_manifest_url" to "$BACKEND/downloads/android.json", "vod_enabled" to true, "live_tv_enabled" to true, "sports_enabled" to true, "maintenance_message" to "", "min_android_version" to 0L, "catalogue_api_origin" to CatalogueEndpoint.DEFAULT, "android_local_live_enabled" to true, "android_prepared_live_enabled" to true, "android_prepared_live_watch_host" to LocalLiveConfig.DEFAULT_WATCH_HOST, "live_source_config" to LocalLiveConfig.DEFAULT) + RemotePresentation.defaults).addOnCompleteListener {
                 applyValues?.invoke()
                 config.fetchAndActivate().addOnCompleteListener { if(it.isSuccessful) applyValues?.invoke() }
                 config.addOnConfigUpdateListener(object: ConfigUpdateListener {
@@ -89,11 +93,25 @@ object PublicFirebase {
         runCatching { analytics?.logEvent(name, Bundle().apply { putString("content_type", safeKind); if(code > 0) putLong("error_code", code); if(duration > 0) putLong("duration_ms", duration.coerceAtMost(3600000)) }) }
     }
     fun section(name: String) { if(consent.value == true) runCatching { analytics?.logEvent("section_view", Bundle().apply { putString("section", name.takeIf { it in listOf("Home", "Movies", "Shows", "Sports", "Live TV", "Search", "My List") } ?: "Other") }) } }
-    fun playbackError(kind: String, code: Int) {
+    internal fun playbackError(kind: String, code: Int, stage: LiveFailureStage? = null, http: Int? = null) {
         if (consent.value != true) return
         event("playback_failed", kind, code.toLong())
+        val status = http?.takeIf { it in 300..599 }
+        if (stage != null) runCatching {
+            analytics?.logEvent("live_stage_failed", Bundle().apply {
+                putString("failure_stage", stage.name.lowercase())
+                putLong("error_code", code.toLong())
+                status?.let { putLong("http_status", it.toLong()) }
+            })
+        }
         // Never forward the original exception: Media3 causes can contain signed URLs.
-        runCatching { crash?.recordException(IllegalStateException("Playback failure: ${kind.takeIf { it in listOf("movie", "tv", "live", "sport") } ?: "unknown"}; code=$code")) }
+        val safeKind = kind.takeIf { it in listOf("movie", "tv", "live", "sport") } ?: "unknown"
+        val details = buildString {
+            append("Playback failure kind=$safeKind code=$code")
+            stage?.let { append(" stage=${it.name}") }
+            status?.let { append(" http=$it") }
+        }
+        runCatching { crash?.recordException(IllegalStateException(details)) }
     }
 }
 

@@ -13,13 +13,13 @@ import java.util.concurrent.atomic.AtomicBoolean
 /** Experimental transport: player loading threads perform network/unwrap work, never Compose. */
 @androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
 internal class LocalLiveDataSource(private val channel: Int, private val hosts: Set<String>, private val shared: Shared): BaseDataSource(true) {
-    internal class Shared {
+    internal class Shared(val experimentalResolver: Boolean = false) {
         val cookies=java.net.CookieManager(null,java.net.CookiePolicy.ACCEPT_ORIGINAL_SERVER)
         // Each DataSource has cancellable IO; session/token state is shared by the player's loaders.
         var session: LocalLiveSession?=null
     }
-    class Factory(private val channel: Int, private val hosts: Set<String>): DataSource.Factory {
-        private val shared=Shared()
+    class Factory(private val channel: Int, private val hosts: Set<String>, experimentalResolver: Boolean = false): DataSource.Factory {
+        private val shared=Shared(experimentalResolver)
         fun proofStats(): Triple<Long,Long,Long> = synchronized(shared) { shared.session?.let { Triple(it.sourceBytes.get(),it.transformedSegments.get(),it.tokenRefreshes.get()) } ?: Triple(0,0,0) }
         override fun createDataSource(): DataSource = LocalLiveDataSource(channel,hosts,shared)
     }
@@ -52,7 +52,8 @@ internal class LocalLiveDataSource(private val channel: Int, private val hosts: 
         try {
             // Serialize session operations to keep per-player tokens coherent and avoid duplicate handshakes.
             synchronized(shared) {
-                val session=shared.session ?: LocalLiveSession(channel,hosts,{ uri,max -> activeFetch.get()!!.invoke(uri,max) }).also { shared.session=it }
+                val session=shared.session ?: LocalLiveSession(channel,hosts,{ uri,max -> activeFetch.get()!!.invoke(uri,max) },
+                    playlistResolver = if (shared.experimentalResolver) LivePlaylistResolver() else null).also { shared.session=it }
                 activeFetch.set(::fetch)
                 try { data=session.load(URI(dataSpec.uri.toString())) } finally { activeFetch.remove() }
             }
@@ -77,4 +78,12 @@ internal class LocalLiveDataSource(private val channel: Int, private val hosts: 
         if(started) { started=false; transferEnded() }
     }
     companion object { private val activeFetch=ThreadLocal<((URI,Int)->ByteArray)>() }
+}
+
+@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
+internal class LocalLiveErrorPolicy : androidx.media3.exoplayer.upstream.DefaultLoadErrorHandlingPolicy() {
+    override fun getRetryDelayMsFor(info: androidx.media3.exoplayer.upstream.LoadErrorHandlingPolicy.LoadErrorInfo): Long =
+        if (generateSequence(info.exception as Throwable) { it.cause }.any { it is UnsupportedLiveSourceException })
+            androidx.media3.common.C.TIME_UNSET
+        else super.getRetryDelayMsFor(info)
 }

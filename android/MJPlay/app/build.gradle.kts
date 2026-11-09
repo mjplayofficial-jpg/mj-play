@@ -39,6 +39,7 @@ android {
     buildFeatures { compose = true; buildConfig = true }
 }
 dependencies {
+    debugImplementation("androidx.webkit:webkit:1.12.1")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")
     implementation(platform("com.google.firebase:firebase-bom:34.4.0"))

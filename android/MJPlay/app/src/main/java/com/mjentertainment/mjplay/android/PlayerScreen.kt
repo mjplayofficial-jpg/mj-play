@@ -59,7 +59,12 @@ import kotlinx.coroutines.delay
 fun PlayerScreen(item: Title, initialStream: Stream, repo: Repository, season: Int, episode: Int, onBack: () -> Unit, onRetry: () -> Unit, nextLabel: String?, onNext: (() -> Unit)?, onEpisode: (Int) -> Unit = {}, onChannel: (Channel) -> Unit = {}, liveCategory: String = "popular", onLiveCategory: (String) -> Unit = {}, sportsEvent: SportsEvent? = null, onSportsSource: (SportsEvent, SportsSource) -> Unit = { _, _ -> }, autoRecovery: Boolean = true, onMovieTitle: (Title) -> Unit = {}, preparationError: String? = null) {
     var candidateIndex by remember(initialStream) { mutableIntStateOf(0) }
     val candidates = remember(initialStream) { (listOf(initialStream.url) + if(initialStream.localVod) initialStream.alternatives else emptyList()).distinct().take(3) }
-    val stream = initialStream.copy(url = candidates[candidateIndex])
+    val liveCandidates = initialStream.liveCandidates
+    val liveSource = liveCandidates.getOrNull(candidateIndex)
+    val stream = if (liveSource == null) initialStream.copy(url = candidates[candidateIndex]) else initialStream.copy(
+        url = liveSource.url,
+        localChannel = item.id.takeIf { liveSource.transport == LiveTransport.WRAPPED_HLS }
+    )
     val preparing = stream.url.isBlank()
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
@@ -71,7 +76,7 @@ fun PlayerScreen(item: Title, initialStream: Stream, repo: Repository, season: I
     var panel by remember { mutableStateOf("Playback settings") }
     var failure by remember(stream.url) { mutableStateOf<String?>(null) }
     var buffering by remember(stream.url) { mutableStateOf(true) }
-    var firstFrameRendered by remember(initialStream) { mutableStateOf(false) }
+    var firstFrameRendered by remember(initialStream, liveSource) { mutableStateOf(false) }
     var position by remember { mutableLongStateOf(0) }
     var scrub by remember(stream.url) { mutableStateOf<Float?>(null) }
     var duration by remember { mutableLongStateOf(0) }
@@ -114,12 +119,17 @@ fun PlayerScreen(item: Title, initialStream: Stream, repo: Repository, season: I
     val auto by rememberUpdatedState(autoplay)
     val channel = remember(item.id) { repo.channels().firstOrNull { it.number == item.id } }
     var favourite by remember(item.id) { mutableStateOf(channel?.let(repo::isFavourite) == true) }
+    val preparedTransport = remember(stream.url) {
+        if (liveSource?.transport == LiveTransport.PREPARED_HLS) PreparedLiveTransportFactory.create(context, item.id) else null
+    }
     val player = remember(stream.url) {
         val factory = DefaultHttpDataSource.Factory().setConnectTimeoutMs(25000).setReadTimeoutMs(35000)
         if (stream.localVod) factory.setDefaultRequestProperties(mapOf("Origin" to "https://vidrock.to", "Referer" to "https://vidrock.to/"))
-        if (!stream.sample && Uri.parse(stream.url).host == Uri.parse(BACKEND).host) repo.authorization?.let { factory.setDefaultRequestProperties(mapOf("Authorization" to it)) }
-        val mediaFactory: androidx.media3.datasource.DataSource.Factory = stream.localChannel?.let { LocalLiveDataSource.Factory(it, LocalLiveConfig.hosts) } ?: androidx.media3.datasource.DefaultDataSource.Factory(context, factory)
-        ExoPlayer.Builder(context).setRenderersFactory(DefaultRenderersFactory(context).setEnableDecoderFallback(true)).setMediaSourceFactory(DefaultMediaSourceFactory(mediaFactory)).setSeekBackIncrementMs(10000).setSeekForwardIncrementMs(10000).build().apply {
+        if (!stream.sample && liveSource?.transport != LiveTransport.DIRECT_HLS && Uri.parse(stream.url).host == Uri.parse(BACKEND).host) repo.authorization?.let { factory.setDefaultRequestProperties(mapOf("Authorization" to it)) }
+        val mediaFactory: androidx.media3.datasource.DataSource.Factory = preparedTransport?.factory ?: stream.localChannel?.let { LocalLiveDataSource.Factory(it, LocalLiveConfig.hosts, repo.experimentalLiveResolverEnabled()) } ?: androidx.media3.datasource.DefaultDataSource.Factory(context, factory)
+        val mediaSourceFactory = DefaultMediaSourceFactory(mediaFactory)
+        if (stream.localChannel != null) mediaSourceFactory.setLoadErrorHandlingPolicy(LocalLiveErrorPolicy())
+        ExoPlayer.Builder(context).setRenderersFactory(DefaultRenderersFactory(context).setEnableDecoderFallback(true)).setMediaSourceFactory(mediaSourceFactory).setSeekBackIncrementMs(10000).setSeekForwardIncrementMs(10000).build().apply {
             if (!preparing) setMediaItem(MediaItem.Builder().setUri(stream.url).apply { if (stream.hls) setMimeType(MimeTypes.APPLICATION_M3U8) }.build())
             if (!stream.live && !stream.sample) seekTo(resumePosition(repo.progress(item),season,episode))
             trackSelectionParameters = trackSelectionParameters.buildUpon().apply { if(stream.localVod) setPreferredAudioLanguage("en") }.setPreferredTextLanguage("en").setTrackTypeDisabled(C.TRACK_TYPE_TEXT, !english).build()
@@ -134,7 +144,11 @@ fun PlayerScreen(item: Title, initialStream: Stream, repo: Repository, season: I
         var started = false
         var waitingAt = 0L
         val listener = object : Player.Listener {
-            override fun onRenderedFirstFrame() { firstFrameRendered = true }
+            override fun onRenderedFirstFrame() {
+                firstFrameRendered = true
+                preparedTransport?.onFirstFrame()
+                liveSource?.let { repo.liveHealth.healthy(item.id, it) }
+            }
             override fun onIsPlayingChanged(playing: Boolean) { if (playing && !started) { started = true; PublicFirebase.event("playback_started", item.type) } }
             override fun onPlaybackStateChanged(state: Int) {
                 buffering = state == Player.STATE_BUFFERING; ended = state == Player.STATE_ENDED
@@ -143,14 +157,29 @@ fun PlayerScreen(item: Title, initialStream: Stream, repo: Repository, season: I
                 if (ended) { PublicFirebase.event("playback_ended", item.type); if (!stream.live) save() }
             }
             override fun onPlayerError(error: PlaybackException) {
-                PublicFirebase.playbackError(item.type, error.errorCode)
+                val stageFailure = if (stream.live) {
+                    generateSequence(error as Throwable) { it.cause }.filterIsInstance<LivePlaybackFailure>().firstOrNull()
+                        ?: if (error.errorCodeName.startsWith("ERROR_CODE_DECOD")) LivePlaybackFailure(LiveFailureStage.DECODING) else null
+                } else null
                 buffering = false; controls = true
-                val http = generateSequence(error as Throwable) { it.cause }.filterIsInstance<HttpDataSource.InvalidResponseCodeException>().firstOrNull()?.responseCode
+                val http = generateSequence(error as Throwable) { it.cause }.firstNotNullOfOrNull { cause ->
+                    when (cause) {
+                        is HttpDataSource.InvalidResponseCodeException -> cause.responseCode
+                        is LiveHttpException -> cause.status
+                        is LivePlaybackFailure -> cause.status
+                        else -> null
+                    }
+                }
+                PublicFirebase.playbackError(item.type, error.errorCode, stageFailure?.stage, http)
                 // Codes only: signed media URLs and authorization headers never enter our diagnostic log.
-                Log.w("MJPlayback", "type=${item.type} id=${item.id} code=${error.errorCodeName} http=${http ?: 0}")
+                Log.w("MJPlayback", "type=${item.type} id=${item.id} code=${error.errorCodeName} http=${http ?: 0} stage=${stageFailure?.stage?.name ?: "unknown"}")
+                val unsupported = generateSequence(error as Throwable) { it.cause }.filterIsInstance<UnsupportedLiveSourceException>().firstOrNull()
+                liveSource?.let { repo.liveHealth.failed(item.id, it) }
+                if (liveSource != null && candidateIndex < liveCandidates.lastIndex) { candidateIndex++; return }
+                if (unsupported != null) { failure = if (item.type == "live") LIVE_PLAYBACK_UNAVAILABLE else unsupported.message; return }
                 if (stream.localVod && candidateIndex < candidates.lastIndex) { save(); candidateIndex++; return }
-                if (autoRecovery && !recoveryUsed && recoverablePlayback(http,error.errorCode)) { recoveryUsed=true; recover=true }
-                failure = when (http) {
+                if (liveCandidates.size <= 1 && autoRecovery && !recoveryUsed && recoverablePlayback(http,error.errorCode)) { recoveryUsed=true; recover=true }
+                failure = if (item.type == "live") LIVE_PLAYBACK_UNAVAILABLE else when (http) {
                     401 -> "Your preview session was not accepted. Reconnect from Browse."
                     403 -> "The stream refused access. Retry to request a fresh connection."
                     404, 410 -> "This stream is no longer available. Retry to check for a fresh source."
@@ -162,7 +191,7 @@ fun PlayerScreen(item: Title, initialStream: Stream, repo: Repository, season: I
         player.addListener(listener)
         val observer = LifecycleEventObserver { _, event -> if (event == Lifecycle.Event.ON_STOP) { save(); player.pause() } }
         activity?.lifecycle?.addObserver(observer)
-        onDispose { save(); activity?.lifecycle?.removeObserver(observer); player.removeListener(listener); player.release() }
+        onDispose { save(); activity?.lifecycle?.removeObserver(observer); player.removeListener(listener); preparedTransport?.close(); player.release() }
     }
     LaunchedEffect(recover) { if(recover) { save(); delay(1200); retry() } }
     fun loadCaptions(alternate: Boolean = false) {
@@ -207,12 +236,26 @@ fun PlayerScreen(item: Title, initialStream: Stream, repo: Repository, season: I
     LaunchedEffect(Unit) { while (true) { now = System.currentTimeMillis(); delay(30000) } }
     LaunchedEffect(buffering, player) {
         if(buffering && !preparing) { delay(45000); if(buffering && failure==null) {
-            save(); player.pause(); buffering=false; controls=true; failure="The source stopped responding. Retry to request a fresh stream."
-            if(autoRecovery && !recoveryUsed) { recoveryUsed=true; recover=true }
+            if (item.type == "live") {
+                val diagnostic = preparedTransport?.lastFailure
+                PublicFirebase.playbackError(item.type, PlaybackException.ERROR_CODE_TIMEOUT, diagnostic?.stage, diagnostic?.status)
+            }
+            liveSource?.let { repo.liveHealth.failed(item.id, it) }
+            if (liveSource != null && candidateIndex < liveCandidates.lastIndex) { candidateIndex++; return@LaunchedEffect }
+            save(); player.pause(); buffering=false; controls=true
+            failure = if (item.type == "live") LIVE_PLAYBACK_UNAVAILABLE else "The source stopped responding. Retry to request a fresh stream."
+            if(liveCandidates.size <= 1 && autoRecovery && !recoveryUsed) { recoveryUsed=true; recover=true }
         } }
     }
     LaunchedEffect(player) { while (true) { position = player.currentPosition; duration = player.duration.coerceAtLeast(0); playing = player.isPlaying; delay(250) } }
-    LaunchedEffect(player) { while (true) { delay(5000); save() } }
+    LaunchedEffect(player) { while (true) {
+        delay(5000); save()
+        if (BuildConfig.DEBUG && preparedTransport != null) {
+            val video = player.videoDecoderCounters?.also { it.ensureUpdated() }
+            val audio = player.audioDecoderCounters?.also { it.ensureUpdated() }
+            Log.i("MJNativePrep", "preview_sample channel=${item.id} playing=${player.isPlaying} position=${player.currentPosition} frames=${video?.renderedOutputBufferCount} audio=${audio?.renderedOutputBufferCount} height=${player.videoSize.height}")
+        }
+    } }
     LaunchedEffect(controls, interaction, settings, playing, scrub) { if (controls && !settings && playing && scrub == null) { delay(3500); controls = false } }
     DisposableEffect(fullscreen) {
         activity?.window?.let { val controller = WindowCompat.getInsetsController(it, it.decorView); controller.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE; if (fullscreen) controller.hide(WindowInsetsCompat.Type.systemBars()) else controller.show(WindowInsetsCompat.Type.systemBars()) }
@@ -278,6 +321,7 @@ fun PlayerScreen(item: Title, initialStream: Stream, repo: Repository, season: I
             Column(Modifier.weight(1f)) { Text(item.title, maxLines = 2); Text(if (stream.live) "LIVE / MJ PLAYER" else if (item.type == "tv") "Season $season / Episode $episode" else "MJ PLAYER", color = Purple, style = MaterialTheme.typography.labelSmall) }
         }
         Box(if (wide) Modifier.weight(1f).fillMaxWidth() else Modifier.fillMaxWidth().heightIn(max = 360.dp).aspectRatio(16f / 9f)) {
+            preparedTransport?.let { transport -> AndroidView(factory = { transport.view }, modifier = Modifier.size(1.dp)) }
             AndroidView(factory = { PlayerView(it).apply { this.player = player; keepScreenOn = true; useController = false } }, update = { it.player = player }, modifier = Modifier.fillMaxSize())
             Box(Modifier.fillMaxSize().clickable { controls = !controls; interaction++ })
             if (controls) {
@@ -301,7 +345,8 @@ fun PlayerScreen(item: Title, initialStream: Stream, repo: Repository, season: I
                 }
             }
             if ((!firstFrameRendered || buffering) && failure == null && preparationError == null && !ended) PlaybackLoading(Modifier.align(Alignment.Center), firstFrameRendered)
-            (preparationError ?: failure)?.let { message -> Surface(Modifier.align(Alignment.Center).padding(16.dp), color = SurfaceInk, shape = MaterialTheme.shapes.large) { Column(Modifier.padding(20.dp)) { Text(if(recover) "Reconnecting..." else message); Row { TextButton(onClick = { save(); onRetry() }) { Text("Retry") }; TextButton(onClick = { exit() }) { Text("Back") } } } } }
+            (preparationError ?: failure)?.let { message -> Surface(Modifier.align(Alignment.Center).padding(16.dp), color = SurfaceInk, shape = MaterialTheme.shapes.large) { Column(Modifier.padding(20.dp)) { Text(if(recover) "Reconnecting..." else message)
+                Row { TextButton(onClick = { save(); onRetry() }) { Text("Retry") }; TextButton(onClick = { exit() }) { Text("Back") } } } } }
         }
 
         if (!wide) {

@@ -9,6 +9,10 @@ import java.util.concurrent.atomic.AtomicLong
 
 internal object LocalLiveConfig {
     @Volatile var enabled: Boolean = true
+    @Volatile var preparedEnabled: Boolean = true
+    const val DEFAULT_WATCH_HOST = "thedaddy.li"
+    val watchHosts = setOf(DEFAULT_WATCH_HOST, "thedaddy.pk", "dlive.sx")
+    @Volatile var watchHost: String = DEFAULT_WATCH_HOST
     const val DEFAULT = "{\"allowed_hosts\":[\"edge.wedd48c.top\",\"edge.cowedd4855ws.sbs\"]}"
     @Volatile var hosts: Set<String> = parse(DEFAULT)
     fun parse(raw: String): Set<String> {
@@ -23,7 +27,8 @@ internal class LocalLiveSession(
     val channel: Int,
     private val hosts: Set<String>,
     private val fetch: (URI, Int) -> ByteArray,
-    private val now: () -> Long = { System.nanoTime()/1_000_000 }
+    private val now: () -> Long = { System.nanoTime()/1_000_000 },
+    private val playlistResolver: LivePlaylistResolver? = null
 ) {
     init { require(channel in 1..999999); require(hosts.isNotEmpty()) }
     private var edge: URI?=null
@@ -81,10 +86,11 @@ internal class LocalLiveSession(
             playlist()
         }
         val text=bytes.toString(Charsets.UTF_8)
+        playlistResolver?.let { return it.prepare(source, text, ::allowed, ::ref) }
         if(!text.startsWith("#EXTM3U")) throw IOException("Invalid live playlist")
         return text.lineSequence().map { line ->
-            if(line.isBlank()) line else if(line.startsWith('#')) Regex("URI=\"([^\"]+)\"").replace(line) { m -> "URI=\"${ref(source.resolve(m.groupValues[1]),line.startsWith("#EXT-X-KEY:") || line.startsWith("#EXT-X-SESSION-KEY:"))}\"" }
-            else ref(source.resolve(line.trim()))
+            if(line.isBlank()) line else if(line.startsWith('#')) Regex("URI=\"([^\"]+)\"").replace(line) { m -> "URI=\"${ref(resolveLiveReference(source,m.groupValues[1]),line.startsWith("#EXT-X-KEY:") || line.startsWith("#EXT-X-SESSION-KEY:"))}\"" }
+            else ref(resolveLiveReference(source,line.trim()))
         }.joinToString("\n").toByteArray(Charsets.UTF_8)
     }
 }

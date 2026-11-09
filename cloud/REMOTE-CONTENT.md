@@ -63,3 +63,15 @@ Save and **Publish changes**. New playback attempts check Firebase at most once 
 Only exact `edge.<name>.sbs` or `edge.<name>.top` hostnames are accepted, maximum 16. Do not enter a URL, wildcard, token or channel path. A source using a different domain family requires code review. The backend still requires HTTPS and the requested channel's `/premium<number>/` path, and disallows redirects and URL credentials. Token acquisition and segment decoding are unchanged.
 
 The backend fetches public configuration using the existing Firebase web registration; no Firebase administrator credentials or viewing data are required. Configuration is public and must never contain secrets. One Firebase installation identifies the backend process, not viewers. Valid configuration is cached in memory and atomically on the server's local disk. Render free storage is ephemeral: deployment/recreation can clear that file, so the verified bundled hosts remain the cold-start fallback. Invalid/missing config and Firebase outages retain the last valid list. Protocol/encryption changes still require a backend update.
+
+## Android Preview live resolver
+
+| Remote Config key | Type | Effect after the app activates the change |
+| --- | --- | --- |
+| `android_prepared_live_enabled` | Boolean | Defaults to `true`. Set to `false` to return new Preview sessions to the older local resolver. |
+| `android_prepared_live_watch_host` | String | Defaults to `thedaddy.li`. Also accepts `thedaddy.pk` or `dlive.sx`. Enter only the exact hostname. |
+| `live_source_config` | String | Updates the approved playlist edge hosts using the JSON format above. |
+
+Publish the change, refresh Remote Config in the app, and reopen the channel. The watch hostname and edge list are captured when a Preview session starts. An invalid watch hostname leaves the current valid value in place. A new player domain, session protocol, playlist format, media host family or codec needs an app update and device testing.
+
+The viewer sees a short retry message if playback cannot recover. In ADB, filter for `MJNativePrep` and `MJPlayback` to see the stage, channel ID and HTTP status when available. With diagnostics consent, Firebase Crashlytics receives a nonfatal report with the stage, error code and HTTP status when known. Stage failures also emit the `live_stage_failed` Analytics event. Reports omit URLs, tokens and session keys.

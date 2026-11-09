@@ -652,37 +652,6 @@ export const liveAdditionalChannels=[
     "remoteLogo": "https://i.imgur.com/I8FTwfu.png"
   },
   {
-    "number": 634506985,
-    "title": "StarzPlay CricLife 2 HD",
-    "logo": "assets/channel-logos/634506985.png",
-    "categories": [
-      "sports"
-    ],
-    "labels": [
-      "_tv_search",
-      "sports"
-    ],
-    "provider": "WS_DDL",
-    "url": "https://wsdss.mp/stream/stream-38.php",
-    "wsNumber": 38,
-    "servers": [
-      {
-        "id": 1,
-        "provider": "WS_DDL",
-        "title": "Server 1",
-        "url": "https://wsdss.mp/stream/stream-38.php"
-      },
-      {
-        "id": 2,
-        "provider": "DS_DDL",
-        "title": "Server 2",
-        "url": "https://xyzdddd.mizhls.ru/lb/premium283/index.m3u8"
-      }
-    ],
-    "postId": "4698987612105447519",
-    "remoteLogo": "https://i.imgur.com/B0uwbeT.png"
-  },
-  {
     "number": 397452572,
     "title": "The Pet Collective",
     "logo": "assets/channel-logos/397452572.png",

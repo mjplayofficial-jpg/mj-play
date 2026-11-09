@@ -33,7 +33,7 @@ data class Programme(val start: Long, val end: Long, val title: String)
 data class CreditsMarker(val start: Long, val hasPostCredits: Boolean)
 data class NextEpisode(val season: Int, val episode: Int, val title: String)
 data class Channel(val number: Int, val title: String, val logo: String, val categories: List<String>)
-data class Stream(val url: String, val live: Boolean = false, val sample: Boolean = false, val hls: Boolean = false, val localChannel: Int? = null, val localVod: Boolean = false, val alternatives: List<String> = emptyList())
+data class Stream(val url: String, val live: Boolean = false, val sample: Boolean = false, val hls: Boolean = false, val localChannel: Int? = null, val localVod: Boolean = false, val alternatives: List<String> = emptyList(), val liveCandidates: List<LiveCandidate> = emptyList())
 data class SavedProgress(val position: Long, val duration: Long, val season: Int, val episode: Int)
 data class SportsTeam(val name: String, val logo: String)
 data class SportsSource(val provider: String, val serverNumber: Int, val kind: String, val channel: Int, val videoKey: String)
@@ -152,6 +152,12 @@ class Repository(private val context: Context) {
         } catch (_: Exception) { null } finally { c.disconnect() }
     }
     fun englishEnabled() = preferences.getBoolean("english-enabled", false)
+    fun preparedLiveEnabled() = BuildConfig.DEBUG && preferences.getBoolean("prepared-live-preview", true)
+    fun setPreparedLiveEnabled(value: Boolean) { preferences.edit().putBoolean("prepared-live-preview", value).apply() }
+    fun experimentalLiveResolverEnabled() = BuildConfig.DEBUG && preferences.getBoolean("live-resolver-v2", false)
+    fun setExperimentalLiveResolverEnabled(value: Boolean) {
+        preferences.edit().putBoolean("live-resolver-v2", BuildConfig.DEBUG && value).apply()
+    }
     fun cineSrcEnabled() = preferences.getBoolean("cinesrc-player", false)
     fun setCineSrcEnabled(value: Boolean) {
         preferences.edit().putBoolean("cinesrc-player", value).apply()
@@ -308,12 +314,21 @@ class Repository(private val context: Context) {
     suspend fun stream(item: Title, season: Int, episode: Int, revalidate: Boolean = false): Stream {
         return kotlinx.coroutines.runInterruptible(Dispatchers.IO) { LocalVodResolver.resolve(item, season, episode, revalidate) }
     }
+    internal val liveHealth = LiveSourceHealth()
+    private val liveAdapters = listOf(WrappedLiveAdapter, DirectHlsAdapter(emptyMap()))
+    private val bundledChannelNumbers by lazy { channels().map(Channel::number).toSet() }
+
     suspend fun live(channel: Channel): Stream {
         if (BuildConfig.LOCAL_LIVE_ENABLED && LocalLiveConfig.enabled) {
             require(channel.number in 1..999999)
             // Resolve on the player loading thread, so closing the player cancels loading.
             // Relay remains available via the remote operational switch, never a hidden retry loop.
-            return Stream("mjlive://channel/${channel.number}/entry.m3u8", live = true, hls = true, localChannel = channel.number)
+            val prepared = if (preparedLiveEnabled() && LocalLiveConfig.preparedEnabled && channel.number in bundledChannelNumbers) {
+                PreparedLiveTransportFactory.candidate(channel.number)
+            } else null
+            val candidates = liveHealth.order(channel.number, listOfNotNull(prepared) + liveAdapters.flatMap { it.candidates(channel) })
+            val first = candidates.first()
+            return Stream(first.url, live = true, hls = true, localChannel = channel.number.takeIf { first.transport == LiveTransport.WRAPPED_HLS }, liveCandidates = candidates)
         }
         return validatedStream(playbackRequest("/api/live/${channel.number}"), true)
     }
