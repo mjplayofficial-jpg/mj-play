@@ -1,0 +1,3 @@
+import {profiles} from '../storage/profiles.js';
+import {escapeHtml as esc} from '../components/ui.js';
+export function ProfilesPage(){return `<section class="profiles-page"><p class="eyebrow">MJ PLAY</p><h1>Who’s watching?</h1><div class="profile-options" data-focus-row>${profiles().map((p,i)=>`<button data-focus="profile-${p.id}" data-profile="${p.id}"><span class="profile-avatar profile-colour-${i}" aria-hidden="true"><img src="assets/profiles/${p.id==='me'?'husbae.jpg':p.id==='wife'?'wifey.jpg':'guest.png'}" alt=""></span><strong>${esc(p.name)}</strong></button>`).join('')}</div></section>`;}

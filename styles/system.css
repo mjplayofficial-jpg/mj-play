@@ -1,0 +1,182 @@
+/* Shared TV design rules. Feature-specific layout remains in main.css. */
+:root{--surface:#171b2d;--surface-selected:#302642;--focus:#eee4ff;--radius:.8rem;--text-secondary:#b9c1d3}
+[hidden]{display:none!important}
+button{border-radius:var(--radius);transition:none}
+button:focus,a:focus,input:focus{outline:3px solid var(--focus);outline-offset:3px;box-shadow:none;transform:none!important}
+button:focus{background:#343047;border-color:#b899e4}
+button.primary{background:#7650a8}
+button.primary:focus{background:#8657bd}
+button[aria-pressed=true]:not(:focus){background:var(--surface-selected);border-color:#76618f;color:#e8dff5}
+.nav.active:not(:focus){background:#211c30;border:1px solid #7b6998;border-radius:2rem}
+.nav:focus{background:#393048;border-radius:2rem}
+header{gap:1.7rem}header nav{gap:.2rem}.nav{padding:.6rem .8rem;white-space:nowrap}
+.profile-switch{margin-left:auto;border:1px solid #ffffff25;background:transparent;border-radius:2rem;font-size:.8rem}
+.subtle{font-size:.85rem;color:var(--text-secondary)}.metadata{font-size:.85rem}.card .subtle{font-size:.75rem}.card-title{font-size:.95rem}
+.home-cinema .card[data-preview]:not(.recent-landscape),.genre-cinema .card[data-preview]:not(.recent-landscape){flex:0 0 22rem;width:22rem;height:19rem;min-height:19rem}
+.home-cinema .card[data-preview]:not(.recent-landscape) img,.genre-cinema .card[data-preview]:not(.recent-landscape) img{width:100%;height:12.375rem;aspect-ratio:16/9;object-fit:cover}
+.home-cinema .card[data-preview]>.card-title,.home-cinema .card[data-preview]>.subtle{display:block}
+.home-cinema .media-row,.genre-cinema .media-row{align-items:flex-start;padding-top:.5rem;padding-bottom:.8rem}
+.home-cinema .media-section h2,.genre-cinema .media-section h2{margin-bottom:.45rem}
+.genre-card-summary{height:3.2rem;font-size:.8rem}.genre-card-overview{-webkit-line-clamp:2}
+.genre-row{padding-top:.6rem;padding-bottom:.6rem}.catalogue-cinema .page-heading{padding-top:1.2rem;padding-bottom:.6rem}
+.settings-layout{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1.2rem;align-items:start}
+.settings-group{padding:1.5rem;border:1px solid #ffffff18;border-radius:1rem;background:#111626}
+.settings-group h2{font-size:1.4rem;margin:0 0 1rem}.settings-group h3{font-size:1rem;margin:1.2rem 0 .6rem}
+.settings-group p{font-size:.9rem;color:#bdc5d5}.settings-group .actions{flex-wrap:wrap;margin:.7rem 0;gap:.6rem}
+.settings-group button{font-size:.9rem;padding:.7rem 1rem}.settings-page .provider-options{display:flex}
+.settings-group form{display:flex;flex-direction:column;gap:.8rem;margin:1rem 0;max-width:none}.settings-group label{display:block;font-size:.9rem}
+.settings-group input{display:block;padding:.7rem;margin-top:.4rem}.settings-notice{min-height:1.4rem}
+.profiles-page{text-align:center;padding:4rem}.profiles-page h1{font-size:3rem}.profile-options{display:flex;justify-content:center;gap:2rem;margin:3rem 0}
+.profile-options button{display:flex;flex-direction:column;align-items:center;width:15rem;padding:1rem;background:transparent}
+.profile-avatar{display:flex;align-items:center;justify-content:center;width:8rem;height:8rem;border-radius:1.4rem;background:#50416f;font-size:3rem;margin-bottom:1rem}
+.profile-colour-1{background:#315d6c}.profile-colour-2{background:#4c5265}.profile-options strong{font-size:1.3rem}.profile-options small{font-size:.8rem;color:#b9c1d3;margin-top:.6rem}
+.live-guide-preview{min-height:12rem}.live-guide-slot small,.live-guide-slot time{font-size:.85rem}.live-guide-slot strong{font-size:1rem}
+.live-channel-card strong{font-size:.9rem;line-height:1.3}.live-channel-card small{font-size:.75rem}
+.sports-card-bottom,.sports-card-top{font-size:.8rem}.sports-provider-tag{font-size:.8rem}.sports-player-controls p,.live-trial-status{font-size:.85rem}
+.playback-failure{padding:2rem}.undo-toast{position:fixed;z-index:30;bottom:2rem;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:1rem;background:#25203b;border:1px solid #b49bd0;border-radius:1rem;padding:.8rem 1.2rem}
+@media(max-width:1000px){.settings-layout{grid-template-columns:1fr}}
+
+.profile-avatar{overflow:hidden}.profile-avatar img{width:100%;height:100%;object-fit:cover}
+
+.profiles-page{min-height:90vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem}.profiles-page .eyebrow{letter-spacing:.35em;color:#d9d9df}.profiles-page .profile-avatar{background:#191919}.profiles-page .profile-options button{background:transparent;border-color:transparent}.profiles-page .profile-options button:focus{border-color:#fff}.profiles-page .profile-options small{color:#b5b5c0}
+
+.actor-card{display:flex;flex-direction:column;align-items:center;gap:.6rem;flex:0 0 14rem;padding:1rem}.actor-card img{width:7rem;height:7rem;object-fit:cover;border-radius:50%}.actor-card strong{font-size:1.25rem}.actor-card .subtle{white-space:normal}.actor-heading{display:flex;gap:2rem;align-items:center;margin-bottom:2rem}.actor-heading>img{width:9rem;height:12rem;object-fit:cover;border-radius:1rem}.actor-search{margin:1.5rem 0}
+
+.nav-avatar{width:2rem;height:2rem;object-fit:cover;border-radius:50%;margin-right:.5rem;vertical-align:middle}.release-notice{font-size:1.2rem;color:#e2d0a2}.actor-page [aria-pressed=true],[data-taste][aria-pressed=true]{background:#54436c;border-color:#c5ade5}
+
+.feedback-icon{width:1.4rem;height:1.4rem;fill:none;stroke:currentColor;stroke-width:1.7;vertical-align:middle;margin-right:.5rem}.thumbs-down{transform:rotate(180deg)}.cast-link{padding:.4rem .7rem;font-size:1rem;margin:.2rem}
+
+.live-upcoming-strip{display:flex;align-items:center;gap:.85rem;flex:1;min-width:0;overflow:hidden;border-left:1px solid #ffffff30;padding-left:1rem}.live-upcoming-label{font-size:.65rem;letter-spacing:.08em;color:#b8bcc8;flex-shrink:0}.live-upcoming-item{display:flex;flex-direction:column;min-width:0;flex:1;max-width:15rem;gap:.2rem}.live-upcoming-item time{font-size:.75rem;color:#b8bcc8}.live-upcoming-item>span{font-size:.85rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.live-upcoming-empty{font-size:.75rem;color:#b8bcc8}.live-controls .live-trial-status{position:absolute;bottom:5.4rem;right:2rem}.live-upcoming-strip[hidden]{display:none}
+
+.alternative-live-media{width:100%;height:100%;border:0;outline:0;background:#000;object-fit:contain}
+/* One season control, with a bounded list for long-running shows. */
+.season-selector{margin:1rem 0 1.5rem;max-width:23rem}
+.season-picker{position:relative}
+.season-picker summary{display:flex;align-items:center;justify-content:space-between;gap:2rem;list-style:none;cursor:pointer;background:#242235;border:1px solid #ffffff35;border-radius:.65rem;padding:.8rem 1rem;font-size:1rem;min-height:3rem}
+.season-picker summary::-webkit-details-marker{display:none}
+.season-picker summary svg{width:1.1rem;height:1.1rem;fill:none;stroke:currentColor;stroke-width:2;flex-shrink:0}
+.season-picker summary:focus{outline:2px solid #cbb5ff;outline-offset:3px}
+.season-picker-options{position:absolute;top:calc(100% + .4rem);left:0;right:0;z-index:20;max-height:18rem;overflow-y:auto;padding:.4rem;background:#191827;border:1px solid #ffffff30;border-radius:.65rem;box-shadow:0 1rem 2rem #0008}
+.season-picker:not([open]) .season-picker-options{display:none}
+.season-picker-options button{display:flex;align-items:center;justify-content:space-between;gap:1rem;width:100%;text-align:left;padding:.7rem .8rem;font-size:.9rem;background:transparent;border-radius:.4rem}
+.season-picker-options button small{font-size:.7rem;color:#bcb6cc}
+.season-picker-options button[aria-pressed=true]{background:#493464}
+.season-picker-options button:focus{background:#65458b;box-shadow:none;outline:2px solid #cbb5ff;outline-offset:-2px}
+/* Compact actor header and shared mouse/remote sort control. */
+.actor-page .actor-heading{gap:1.4rem;margin-bottom:1.2rem;align-items:center}
+.actor-page .actor-heading>img{width:6rem;height:8rem;border-radius:.7rem;flex-shrink:0}
+.actor-page .actor-heading h1{font-size:2.4rem;margin:.3rem 0 .5rem;line-height:1.12}
+.actor-page .actor-heading p{margin:.4rem 0;font-size:.9rem;color:#b8b4c8}
+.actor-page .actor-heading .eyebrow{font-size:.65rem;color:#c4a4f1}
+.actor-back{display:inline-flex;align-items:center;gap:.4rem;padding:.4rem .6rem;margin-top:.4rem;background:transparent;border:1px solid #ffffff25;border-radius:2rem;font-size:.8rem}
+.actor-back svg{width:1rem;height:1rem;fill:none;stroke:currentColor;stroke-width:2}
+.actor-toolbar{display:flex;align-items:center;justify-content:space-between;gap:1rem;margin:1rem 0 1.5rem;max-width:55rem}
+.actor-toolbar .actions{margin:0;gap:.5rem}
+.actor-filters button{padding:.65rem 1.1rem;font-size:.85rem;border-radius:2rem}
+.actor-sort-picker{position:relative;min-width:9rem}
+.actor-sort-picker summary{display:flex;justify-content:space-between;align-items:center;gap:1rem;list-style:none;cursor:pointer;padding:.65rem 1rem;border:1px solid #ffffff35;border-radius:.65rem;background:#222638;font-size:.85rem}
+.actor-sort-picker summary::-webkit-details-marker{display:none}
+.actor-sort-picker summary svg{width:1rem;height:1rem;fill:none;stroke:currentColor;stroke-width:2}
+.actor-sort-picker summary:focus{outline:2px solid #cbb5ff;outline-offset:3px}
+.actor-sort-options{position:absolute;top:calc(100% + .4rem);right:0;left:0;z-index:20;padding:.3rem;background:#191827;border:1px solid #ffffff30;border-radius:.65rem;box-shadow:0 .5rem 2rem #0008}
+.actor-sort-picker:not([open]) .actor-sort-options{display:none}
+.actor-sort-options button{display:block;width:100%;padding:.6rem .7rem;font-size:.85rem;text-align:left}
+/* Compact sports discovery header on TV and large screens. */
+.sports-browse-v2 .sports-heading{margin-bottom:1rem;gap:1rem;align-items:center}
+.sports-browse-v2 .sports-heading h1{font-size:2.4rem;line-height:1.1;margin:.35rem 0 .5rem}
+.sports-browse-v2 .sports-heading p{margin:.35rem 0;font-size:.9rem}
+.sports-browse-v2 .sports-heading .eyebrow{font-size:.6rem;letter-spacing:.18em}
+.sports-browse-v2 .sports-tools{display:flex;gap:.6rem;flex-shrink:0}
+.sports-browse-v2 .sports-tools button{display:flex;align-items:center;justify-content:center;width:2.8rem;height:2.8rem;min-width:2.8rem;padding:.65rem;border:1px solid #ffffff30;border-radius:50%;background:#222638}
+.sports-browse-v2 .sports-tools svg{width:1.2rem;height:1.2rem;fill:none;stroke:currentColor;stroke-width:1.8;flex-shrink:0}
+.sports-browse-v2 .sports-bar{padding-top:.35rem;margin-top:0}
+.sports-browse-v2 .sports-filters{gap:.5rem;padding:.45rem .4rem .6rem;scroll-padding-inline:.4rem;mask-image:linear-gradient(to right,#000 0%,#000 95%,transparent 100%);-webkit-mask-image:linear-gradient(to right,#000 0%,#000 95%,transparent 100%)}
+.sports-browse-v2 .sports-filters button{font-size:.85rem;padding:.65rem 1rem;white-space:nowrap}
+.sports-browse-v2 .sports-window{margin-top:.25rem;margin-bottom:.4rem;gap:.4rem}
+.sports-browse-v2 .sports-window button{font-size:.8rem;padding:.45rem .8rem;white-space:nowrap}
+.sports-browse-v2 .sports-window [data-sports-window=live]{color:#a7ead4}
+.sports-browse-v2 .sports-window [data-sports-window=live][aria-pressed=true]{background:#183c35;border-color:#77cbb1}
+.sports-browse-v2 .sports-summary{margin:.6rem .4rem .8rem;font-size:.75rem}
+.tv-title-actions{display:flex;flex-direction:column;gap:.6rem}
+.tv-title-primary,.tv-title-secondary{display:flex;flex-wrap:wrap;gap:.6rem}
+.tv-title-actions button[hidden]{display:none!important}
+.tv-title-secondary button{display:flex;align-items:center;gap:.5rem;font-size:.8rem;padding:.65rem .85rem;border-radius:.65rem}
+.tv-title-secondary svg{width:1.2rem;height:1.2rem;flex:0 0 1.2rem;fill:none;stroke:currentColor;stroke-width:1.8}
+header .brand:focus{outline:2px solid #cbb5ff;outline-offset:5px}
+.tv-player-menu,.tv-episode-drawer{position:absolute;right:2rem;bottom:2rem;z-index:12;width:24rem;max-height:85vh;overflow-y:auto;padding:1.2rem;border:1px solid #ffffff30;border-radius:1rem;background:#141522;box-shadow:0 1rem 3rem #0009;pointer-events:auto}
+.tv-player-menu[hidden],.tv-episode-drawer[hidden]{display:none!important}
+.tv-player-menu h3{font-size:1.2rem;margin:0 0 .9rem}
+.tv-player-menu .cinema-extra-actions{display:flex;flex-direction:column;gap:.25rem}
+.tv-player-menu button{font-size:.95rem;padding:.7rem .8rem;border-radius:.6rem;min-height:2.5rem}
+.tv-player-menu .cinema-extra-actions button,.tv-player-menu>[data-focus]{width:100%;display:flex;align-items:center;gap:.5rem;text-align:left;background:#ffffff08;margin:.2rem 0}
+.tv-player-menu [data-focus^=subtitle-quick-]{display:none!important}
+.tv-player-menu svg,.cinema-bottom-actions>[data-focus^=tv-player-] svg{width:1.3rem;height:1.3rem;fill:none;stroke:currentColor;stroke-width:1.8;flex-shrink:0}
+.cinema-bottom-actions>[data-focus^=tv-player-]{display:flex;align-items:center;gap:.5rem;font-size:.85rem}
+.tv-player-menu .cinema-subtitles{position:static;width:100%;max-width:none;max-height:none;margin:0;padding:0;border:0;background:none;box-shadow:none}
+.tv-player-menu.tv-subtitle-open>h3,.tv-player-menu.tv-subtitle-open>.cinema-extra-actions,.tv-player-menu.tv-subtitle-open>[data-focus]{display:none!important}
+.tv-episode-drawer{top:2rem;bottom:2rem;width:29rem}
+.tv-drawer-heading{display:flex;align-items:center;justify-content:space-between;gap:1rem}
+.tv-drawer-heading h3{font-size:1.2rem;margin:0}
+.tv-drawer-heading button{font-size:.8rem;padding:.5rem .7rem}
+.tv-drawer-seasons{margin:1rem 0}
+.tv-drawer-episodes{display:flex;flex-direction:column;gap:.5rem}
+.tv-drawer-episodes button{display:flex;gap:.8rem;align-items:center;width:100%;text-align:left;padding:.5rem;border-radius:.6rem;background:#ffffff08}
+.tv-drawer-episodes img{width:7rem;height:4rem;object-fit:cover;border-radius:.4rem}
+.tv-drawer-episodes strong{font-size:.85rem;display:block;line-height:1.35}
+.tv-drawer-episodes small{font-size:.65rem;color:#bbb;display:block;margin-top:.3rem}
+.tv-drawer-episodes [aria-current]{border-color:#b69add;background:#31263f}
+/* Title actions: one main Play button and compact secondary icons. */
+.title-saved-progress{display:flex;align-items:center;gap:.8rem;margin:1rem 0 .8rem;width:100%;max-width:48rem}
+.title-saved-progress>div{height:.22rem;border-radius:1rem;background:#ffffff25;flex:1;overflow:hidden}
+.title-saved-progress>div>span{display:block;height:100%;border-radius:inherit;background:#b38af4}
+.title-saved-progress small{font-size:.7rem;white-space:nowrap;color:#d2cadf}
+.tv-title-actions{flex-direction:row;align-items:center;gap:.7rem!important;flex-wrap:wrap}
+.tv-title-primary,.tv-title-secondary{display:contents}
+.tv-title-actions [data-play].primary{order:0}
+.tv-title-actions .title-icon-action{order:1}
+.tv-title-actions [data-focus=detail-restart],.tv-title-actions [data-focus=detail-choose],.tv-title-actions [data-focus=detail-trailer],.tv-title-actions [data-focus=detail-related],.tv-title-actions [data-focus=detail-back],.tv-title-actions [data-focus=detail-watched]{order:2;font-size:.8rem;padding:.6rem .8rem}
+.tv-title-actions .title-icon-action{position:relative;display:inline-flex;align-items:center;justify-content:center;width:2.8rem;height:2.8rem;min-width:2.8rem;min-height:2.8rem;padding:.65rem;border:1px solid #aaa3bc;background:#343442;border-radius:50%;gap:0;overflow:visible;transform:none}
+.tv-title-actions .title-icon-action>span{display:none}
+.tv-title-actions .title-icon-action svg{width:1.2rem;height:1.2rem;flex:0 0 1.2rem;fill:none;stroke:currentColor;stroke-width:1.8}
+.title-icon-action:focus::after,.title-icon-action:hover::after{content:attr(aria-label);position:absolute;bottom:calc(100% + .7rem);left:50%;transform:translateX(-50%);background:#f4edf9;color:#191222;border-radius:.3rem;padding:.45rem .65rem;font-size:.7rem;font-weight:600;white-space:nowrap;z-index:25;pointer-events:none}
+.title-remove-action:focus,.title-remove-action:hover{background:#672233!important;border-color:#e77688!important}
+.title-icon-action[aria-pressed=true]{border-color:#c7a7f4;background:#514064}
+/* Compact catalogue schedule: content determines height, including empty/loading states. */
+.live-catalogue .live-guide-preview{height:auto;min-height:0;overflow:visible;padding:.85rem 1rem;background:linear-gradient(110deg,#1c182b,#111522);border:1px solid #ffffff1c;border-radius:.9rem}
+.live-catalogue .live-guide-preview>strong{display:inline;font-size:.9rem;padding:0;margin-right:.8rem}
+.live-catalogue .live-guide-preview>p{display:inline;font-size:.8rem;margin:0;color:#aaa5bd}
+.live-guide-heading{display:flex;justify-content:space-between;align-items:center;gap:1rem;margin-bottom:.8rem}
+.live-guide-heading>div{min-width:0}
+.live-guide-heading small{display:block;font-size:.5rem;letter-spacing:.12em;color:#b5a0cf;margin-bottom:.25rem}
+.live-guide-heading strong{display:block;font-size:1rem;line-height:1.2}
+.live-guide-preview .live-guide-heading button{position:static;display:flex;align-items:center;justify-content:center;gap:.35rem;font-size:.7rem;padding:.45rem .65rem;flex-shrink:0;border:1px solid #ffffff25;border-radius:2rem;background:#ffffff08}
+.live-guide-heading button svg{width:.85rem;height:.85rem;fill:none;stroke:currentColor;stroke-width:2;flex-shrink:0}
+.live-catalogue .live-guide-timeline{display:grid;grid-template-columns:1.4fr 1fr 1fr 1fr;gap:.85rem;margin:0}
+.live-catalogue .live-guide-slot{position:relative;min-height:4.3rem;padding:0 0 0 .8rem;border-left:1px solid #ffffff20}
+.live-catalogue .live-guide-current{border-color:#b38af4;background:#a780ff0a;border-radius:0 .4rem .4rem 0;padding-right:.6rem}
+.live-catalogue .live-guide-slot small{position:static;display:block;font-size:.6rem;letter-spacing:.06em;color:#b49dce;margin:0 0 .3rem;text-transform:uppercase}
+.live-catalogue .live-guide-current small{color:#d5baff}
+.live-catalogue .live-guide-slot strong{display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;height:2.4em;font-size:.85rem;line-height:1.2;color:#f2edf9}
+.live-catalogue .live-guide-slot time{display:block;font-size:.7rem;margin-top:.4rem;color:#aaa6bd}
+.live-catalogue .live-guide-slot progress{position:static;display:block;width:100%;height:.14rem;margin-top:.4rem;accent-color:#b38af4}
+
+.mj-brand-loading{position:fixed;inset:0;z-index:200;background:radial-gradient(ellipse at 50% 44%,#29183b55,transparent 55%),#080b18;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:28px}.mj-brand-loading img{width:clamp(180px,38vw,320px);height:auto}.mj-brand-loading p{font-size:13px;color:#aaa3bc;letter-spacing:.08em;margin:0}.mj-brand-progress{width:100px;height:3px;border-radius:4px;overflow:hidden;background:#ffffff15}.mj-brand-progress:after{content:"";display:block;width:45%;height:100%;border-radius:4px;background:linear-gradient(90deg,#934dff,#c5a0ff);animation:mj-brand-load 1.3s ease-in-out infinite alternate}@keyframes mj-brand-load{from{transform:translateX(-100%)}to{transform:translateX(230%)}}@media(prefers-reduced-motion:reduce){.mj-brand-progress:after{animation:none;width:100%}}
+.sport-icon{width:22px;height:22px;fill:none;stroke:currentColor;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round;flex:none}.sports-filters button{display:inline-flex;align-items:center;gap:8px}
+[data-tv-community] a{display:inline-flex;align-items:center;gap:12px;padding:16px 22px;border:1px solid #ffffff22;border-radius:18px;color:#ece7ff;background:#ffffff08;text-decoration:none}[data-tv-community] a:focus{outline:3px solid #be9aff;outline-offset:4px}.settings-group .nav-icon{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.7}.sports-filters .sport-icon{width:22px;height:22px;flex:none}
+
+/* TV audit: compact, focused settings and unobtrusive playback context. */
+.settings-sections{display:flex;gap:14px;margin:24px 0 30px;flex-wrap:wrap}
+.settings-sections button{padding:16px 22px;border-radius:24px;font-size:1rem}
+.settings-sections button[aria-selected="true"]{background:#7953ac;color:white;border-color:#be9aff}
+.settings-layout>.settings-group[hidden]{display:none!important}
+.settings-layout>.settings-group{min-width:0}
+.tv-clock-notice{position:fixed;left:4%;right:4%;bottom:30px;z-index:20000;display:flex;gap:25px;align-items:center;padding:20px 26px;border:1px solid #a783ce;border-radius:18px;background:#181528;color:#f4efff;font-size:19px;box-shadow:0 8px 30px #0009}
+.tv-clock-notice span{flex:1}.tv-clock-notice button{font-size:18px;padding:12px 20px}
+.live-current-programme{margin:4px 0;font-size:20px;max-width:65vw;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#e1d9f2}
+.settings-page h1{font-size:2.4rem;margin-bottom:20px}
+
+/* Reserve the same guide area for loading, missing and available schedules. */
+.live-catalogue .live-guide-preview{height:9.5rem;min-height:9.5rem;max-height:9.5rem;overflow:hidden;box-sizing:border-box}
+.live-guide-heading{min-height:2.2rem}
+.live-guide-heading strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.live-guide-preview .live-guide-heading button:disabled{opacity:.35}

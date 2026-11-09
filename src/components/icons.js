@@ -1,0 +1,1 @@
+export function feedbackIcon(down=false){return `<svg class="feedback-icon${down?' thumbs-down':''}" viewBox="0 0 24 24" aria-hidden="true"><path d="M7 10v11H3V10h4Zm0 0 5-8c2 0 3 2 2 5l-1 3h6c2 0 2 2 1 4l-2 6c0 1-1 1-2 1H7"/></svg>`;}

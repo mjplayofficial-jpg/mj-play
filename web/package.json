@@ -1,0 +1,19 @@
+{
+  "name": "mjplay-public-web",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "start": "node server.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.12"
+  },
+  "dependencies": {
+    "firebase": "12.4.0",
+    "hls.js": "^1.6.13"
+  },
+  "overrides": {
+    "@grpc/grpc-js": "^1.13.6"
+  }
+}

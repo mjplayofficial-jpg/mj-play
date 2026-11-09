@@ -1,0 +1,16 @@
+{
+  "id": "com.mjentertainment.mjplay",
+  "version": "1.3.35",
+  "vendor": "MJ Entertainment",
+  "type": "web",
+  "main": "index.html",
+  "title": "MJ Play",
+  "icon": "assets/icons/tv-icon-v2.png",
+  "largeIcon": "assets/icons/tv-large-icon-v2.png",
+  "resolution": "1920x1080",
+  "bgColor": "#080b18",
+  "disableBackHistoryAPI": true,
+  "splashBackground": "assets/logo/tv-splash.png",
+  "splashColor": "#090B18",
+  "iconColor": "#090B18"
+}

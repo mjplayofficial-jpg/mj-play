@@ -1,0 +1,35 @@
+import {browseDestination} from './browseDestination.js';
+import {sportsDestination} from './sportsDestination.js';
+import {titleDestination} from './titleDestination.js';
+import {episodeDestination} from './episodeNavigation.js';
+import {nextShelfStart} from './shelfDestination.js';
+import {scrollShelfIntoView} from './shelfScroll.js';
+export class FocusManager {
+ constructor(root,onBack){this.root=root;this.onBack=onBack;this.keyboardVisible=false;document.addEventListener('keyboardStateChange',e=>{this.keyboardVisible=!!e.detail?.visibility;});this.handler=e=>this.key(e);document.addEventListener('keydown',this.handler);root.addEventListener('pointerdown',e=>{const target=e.target.closest('[data-focus]');if(target)target.focus({preventScroll:true});});}
+ elements(){const scope=this.root.querySelector('[data-modal]')||this.root;return [...scope.querySelectorAll('[data-focus]')].filter(x=>!x.disabled&&x.getClientRects().length);}
+ restore(key){const items=this.elements();const target=items.find(x=>x.dataset.focus===key)||items.find(x=>!x.closest('header'))||items[0];if(target)this.move(target);}
+ key(e){const code=e.keyCode;const key=(!e.key||e.key==='Unidentified')?({37:'ArrowLeft',38:'ArrowUp',39:'ArrowRight',40:'ArrowDown',13:'Enter'}[code]):e.key;const target=e.target.tagName==='INPUT'?e.target:document.activeElement;const input=target?.tagName==='INPUT';if(key==='Escape'||code===461||(key==='Backspace'&&!input)){e.preventDefault();if(input){target.blur();target.form?.querySelector('[data-search-edit]')?.focus({preventScroll:true});return;}this.onBack();return;}if(input){if(key==='Enter'||code===13){e.preventDefault();target.form?.requestSubmit();return;}if(!key?.startsWith('Arrow')||this.keyboardVisible)return;if(!target.form?.querySelector('[data-search-edit]')){const controls=[...target.form?.querySelectorAll('[data-focus]')||[]].filter(e=>!e.disabled&&!e.hidden),index=controls.indexOf(target),next=controls[index+(['ArrowUp','ArrowLeft'].includes(key)?-1:1)];target.blur();if(next)this.move(next);return;}target.blur();target.form?.querySelector('[data-search-edit]')?.focus({preventScroll:true});}
+ if(!['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(key))return;e.preventDefault();if(e.repeat&&Date.now()-(this.lastNavigation||0)<110)return;this.lastNavigation=Date.now();this.navigate({ArrowLeft:'left',ArrowRight:'right',ArrowUp:'up',ArrowDown:'down'}[key]);
+ }
+ activate(){const current=document.activeElement;if(this.elements().includes(current)&&current.matches('button,a,summary'))current.click();}
+ navigate(direction){const key={left:'ArrowLeft',right:'ArrowRight',up:'ArrowUp',down:'ArrowDown'}[direction];if(!key)return;const current=document.activeElement;if(direction==='right'&&current?.dataset?.focus==='nav-Settings'){const profile=this.root.querySelector('[data-focus="nav-profile"]');if(profile)this.move(profile);return;}if(direction==='left'&&current?.dataset?.focus==='nav-profile'){const settings=this.root.querySelector('[data-focus="nav-Settings"]');if(settings)this.move(settings);return;}if(['left','right'].includes(direction)&&current?.dataset?.focus==='hero-play')return;if(direction==='up'&&current?.dataset?.focus==='genre-play')return;const sportsTarget=sportsDestination(this.root,current,direction);if(sportsTarget!==undefined){if(sportsTarget)this.move(sportsTarget);return;}const titleTarget=titleDestination(this.root,current,direction);if(titleTarget!==undefined){if(titleTarget)this.move(titleTarget);return;}if(direction==='down'&&current?.closest?.('header nav')){const entry=this.root.querySelector('.settings-page [data-focus]')||this.root.querySelector('.search-page [data-search-edit]')||this.root.querySelector('.live-filter-bar [aria-pressed=true]')||this.root.querySelector('.sports-filters [aria-pressed=true]')||this.root.querySelector('.profile-options [data-focus]')||this.root.querySelector('main .results [data-focus]');if(entry){this.move(entry);return;}}const horizontal=direction==='left'||direction==='right';const fastRow=current?.closest?.('[data-focus-row]');if(horizontal&&fastRow&&this.root.contains?.(current)&&!current.closest('.episodes')){const siblings=[...fastRow.querySelectorAll('[data-focus]')].filter(x=>!x.disabled&&!x.hidden);const next=siblings[siblings.indexOf(current)+(direction==='right'?1:-1)];if(next)this.move(next);return;}if(!this.root.querySelector('[data-modal]')&&this.root.querySelector('.home-cinema,.genre-cinema')&&current?.closest?.('.home-cinema,.genre-cinema,header nav')){const target=browseDestination(this.root,current,direction);if(target!==undefined){if(target)this.move(target);return;}}const items=this.elements();if(!items.includes(current)){this.restore();return;}
+ if(current.hasAttribute('data-choose-episode')&&key==='ArrowDown'){const season=this.root.querySelector('.season-selector .selected');if(season){this.move(season);return;}}
+ if(current.hasAttribute('data-genre-filter')&&key==='ArrowDown'){const play=this.root.querySelector('[data-focus="genre-play"]');if(play){this.move(play);return;}}
+ if(direction==='down'||direction==='up'){const first=nextShelfStart(this.root,current,items,direction);if(first){this.move(first);return;}if(current.closest('.genre-cinema,.home-cinema'))return;}
+ const episodes=current.classList?.contains('episode')?current.closest('.episodes'):null;
+ if(episodes){const target=episodeDestination(current,items.filter(el=>el.closest('.episodes')===episodes),direction);if(target){this.move(target);return;}if(direction==='left'||direction==='right')return;const edge=direction==='up'?this.root.querySelector('.season-selector .selected'):this.root.querySelector('#related-titles [data-focus]');if(edge){this.move(edge);return;}}
+ const group=current.closest('[data-focus-row]');if(group&&(key==='ArrowLeft'||key==='ArrowRight')){const siblings=items.filter(x=>x.closest('[data-focus-row]')===group);const index=siblings.indexOf(current)+(key==='ArrowRight'?1:-1);if(siblings[index])this.move(siblings[index]);return;}
+ const r=current.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2;let best,score=Infinity;
+ for(const el of items){if(el===current)continue;const b=el.getBoundingClientRect(),dx=b.left+b.width/2-cx,dy=b.top+b.height/2-cy;const vertical=key==='ArrowUp'||key==='ArrowDown';const primary=vertical?dy:dx,secondary=vertical?dx:dy;const sign=key==='ArrowUp'||key==='ArrowLeft'?-1:1;if(primary*sign<10)continue;const s=Math.abs(primary)+Math.abs(secondary)*2;if(s<score){score=s;best=el;}}
+ if(best)this.move(best);
+ }
+ move(el){const previous=document.activeElement,row=el.closest?.('.media-row');const sameShelf=!!row&&previous?.closest?.('.media-row')===row;el.focus({preventScroll:true});const header=this.root.querySelector('header');if(header?.contains(el)){window.scrollTo(0,0);return;}if(el.matches?.('[data-focus="hero-play"],[data-focus="genre-play"]')){window.scrollTo(0,Math.max(0,el.getBoundingClientRect().top+window.scrollY-(header?.getBoundingClientRect().height||0)-18));return;}scrollShelfIntoView(el,{sameShelf,previous});}
+}
+
+
+
+
+
+
+
+

@@ -1,0 +1,15 @@
+import {fetchIntro} from '../services/intros.js';
+import {focusPlaybackPrompt,releasePlaybackPrompt} from './playbackPrompt.js';
+export function mountIntroPrompt(video,panel,{item,season,episode,isBlocked=()=>false,onSeek=()=>{},lookup=fetchIntro}={}){
+ if(item?.type!=='tv')return {dispose(){}};
+ const doc=video.ownerDocument,prompt=doc.createElement('div');prompt.className='cinema-skip-intro';prompt.setAttribute('data-playback-prompt','');prompt.hidden=true;prompt.innerHTML='<button data-focus="skip-intro">Skip intro <span aria-hidden="true">→</span></button>';panel.parentElement.append(prompt);const button=prompt.querySelector('button');
+ let marker=null,disposed=false,dismissed=false,busy=false,expected=0,attempts=0,timer;const controller=new AbortController();
+ const hide=()=>{releasePlaybackPrompt(prompt,video);prompt.hidden=true;};
+ const update=()=>{if(disposed)return;const active=marker&&!dismissed&&video.currentTime>=marker.start&&video.currentTime<marker.end&&!video.seeking&&!video.paused&&!isBlocked();if(!active){hide();return;}prompt.hidden=false;focusPlaybackPrompt(button,panel,isBlocked());};
+ const request=async()=>{if(disposed||busy||!Number.isFinite(video.duration)||video.duration<300)return;if(Math.abs(expected-video.duration)>1){expected=video.duration;marker=null;attempts=0;}if(marker||attempts>=3)return;busy=true;attempts++;video.dataset&&(video.dataset.introStatus='loading');const duration=video.duration;try{const value=await lookup(item,season,episode,duration,{signal:controller.signal});if(!disposed&&Math.abs(duration-video.duration)<1){marker=value;if(video.dataset){video.dataset.introStatus=value?'ready':'unavailable';video.dataset.introStart=value?String(value.start):'';video.dataset.introEnd=value?String(value.end):'';video.dataset.introSource=value?.source||'';}update();}}catch{}finally{busy=false;if(!disposed&&!marker&&attempts<3){clearTimeout(timer);timer=setTimeout(request,1500);}}};
+ const schedule=()=>{clearTimeout(timer);timer=setTimeout(request,200);};
+ button.onclick=()=>{if(!marker)return;onSeek();dismissed=true;video.currentTime=marker.end;hide();};
+ const key=e=>{if(prompt.hidden||isBlocked())return;const back=e.keyCode===461||e.key==='Escape'||e.key==='Backspace',ok=e.keyCode===13||e.key==='Enter';if(back){e.preventDefault();e.stopImmediatePropagation();dismissed=true;hide();}else if(ok&&doc.activeElement===button){e.preventDefault();e.stopImmediatePropagation();if(!e.repeat)button.click();}};
+ doc.addEventListener('keydown',key,true);const events=['timeupdate','seeked','play','pause'];for(const name of events)video.addEventListener(name,update);for(const name of ['loadedmetadata','durationchange','playing'])video.addEventListener(name,schedule);void request();
+ return {dispose(){disposed=true;controller.abort();clearTimeout(timer);doc.removeEventListener('keydown',key,true);for(const name of events)video.removeEventListener(name,update);for(const name of ['loadedmetadata','durationchange','playing'])video.removeEventListener(name,schedule);prompt.remove();}};
+}

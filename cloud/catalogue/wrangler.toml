@@ -1,0 +1,10 @@
+name = "mjplay-catalogue"
+main = "worker.mjs"
+compatibility_date = "2026-10-29"
+workers_dev = true
+preview_urls = false
+
+# Free Workers plan only. Add TMDB_READ_TOKEN or TMDB_API_KEY as an encrypted secret, never a var.
+[observability]
+enabled = true
+

@@ -1,0 +1,4 @@
+import {artwork,escapeHtml as esc} from './ui.js';
+export function featuredPanel(item,{focus='hero-play',genre=false}={}){
+ return `<button class="hero cinematic-featured ${genre?'genre-hero genre-featured':'home-featured'}" data-focus="${focus}" data-route="/${item.type}/${item.id}" aria-label="Open ${esc(item.title)}"><span class="featured-art" aria-hidden="true" style="background-image:url('${artwork(item.backdrop,'w1280')}')"></span><span class="featured-shade" aria-hidden="true"></span><div class="hero-copy"><p class="eyebrow">FEATURED ${item.type==='tv'?'SERIES':'MOVIE'} · MJ PLAY</p><h1>${esc(item.title)}</h1><p class="metadata"><span class="rating">★ ${esc(item.rating)}</span><span>${esc(item.year)}</span></p><p class="overview">${esc(item.overview)}</p><span class="featured-cta">Explore title <span aria-hidden="true">↗</span></span></div></button>`;
+}
